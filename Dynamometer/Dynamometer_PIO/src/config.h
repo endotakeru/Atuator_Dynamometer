@@ -20,15 +20,20 @@ constexpr uint8_t SERIAL_BAUD = 115200;
 constexpr float TORQUE_LIMIT_DEFAULT_NM = 5.0f;
 constexpr float TORQUE_LIMIT_ABS_NM = 15.0f;
 
-//Brake/Servo digital signals limits
+//Brake/Servo---------------------------------
+//Digital signals limits
 constexpr int SERVO_RELEASED_US_DEFAULT = 1000;  // brake demand 0.0 (pads off) TBD
 constexpr int SERVO_FULL_US_DEFAULT     = 2000;  // brake demand 1.0 (firm clamp) TBD
 constexpr int SERVO_US_ABS_MIN          = 800;   // hard safety rails (from Servo Data Sheet) TBD
 constexpr int SERVO_US_ABS_MAX          = 2200;
 
 //Minimum demand that moves the pads considering noise
-constexpr float BRAKE_STICTION_FLOOR_DEFAULT = 0.05f;
+constexpr float BRAKE_STICTION_FLOOR_DEFAULT = 0.05f; //TBD
 
+// (?)
+constexpr float BRAKE_RPM_SPAN_DEFAULT = 1000.0f; //TBD
+
+//--------------------------------------------
 //Control Gains: Error = RPM, Output = RPM
 constexpr float KP_DEFAULT = 1.0f;
 constexpr float KI_DEFAULT = 1.0f;
