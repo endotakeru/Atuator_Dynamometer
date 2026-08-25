@@ -59,4 +59,4 @@ constexpr uint8_t INA_AVG_INDEX = 2; //index 2 = 16 samples -> ~35 ms < CONTROL_
 constexpr uint8_t INA_CT_INDEX = 4; //index 4 = 1.1ms conversion (?)
 
 //HX711
-constexpr uint8_t HEX711_GAIN = 128; // (?)
+constexpr uint8_t HX711_GAIN = 128; // (?)
