@@ -7,7 +7,7 @@ constexpr uint8_t PIN_HX711_DT = 4; // (?)
 constexpr uint8_t PIN_HX711_SCK = 5; // (?)
 constexpr uint8_t PIN_SERVO1 = 9;
 constexpr uint8_t PIN_SERVO2 = 10;
-constexpr uint8_t PIN_LED = LED_BUILTIN; // (?)
+constexpr uint8_t LED_PIN = LED_BUILTIN; // (?)
 
 //Tachometer Slot Count:
 constexpr uint16_t ENCODER_SLOTS = 30; //TBD
