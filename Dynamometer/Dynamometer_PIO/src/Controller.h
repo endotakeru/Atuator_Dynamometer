@@ -7,7 +7,7 @@ void controlBegin();
 void controlSetMode(Mode m);
 Mode controlMode();
 
-void vontrolSetSpeed(float rpm);
+void controlSetSpeed(float rpm);
 float controlSpeedSetpoint();
 
 void controlReset();

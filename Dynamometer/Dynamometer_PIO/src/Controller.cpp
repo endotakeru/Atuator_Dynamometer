@@ -82,7 +82,7 @@ static void updateSpeed(float torque, float rpm, float dt){
 
     shed_last = rpm_shed;
 
-    brakeSetDemand(brakeRPMToDemand(rpm_shed)); // (?)
+    brakeSetDemand(brakeRpmToDemand(rpm_shed)); // (?)
 }
 
 void controlUpdate(float torque, float rpm, float dt){
@@ -90,7 +90,7 @@ void controlUpdate(float torque, float rpm, float dt){
 
     switch(mode){
         case MODE_SPEED: updateSpeed(torque, rpm, dt); break; // (?)
-        case MODE_IDLE: breakRelease(); rpm_i = 0.0f; shed_last = 0.0f; break; // (?)
+        case MODE_IDLE: brakeRelease(); rpm_i = 0.0f; shed_last = 0.0f; break; // (?)
         case MODE_MANUAL: default: break; // (?)
     }
 }
