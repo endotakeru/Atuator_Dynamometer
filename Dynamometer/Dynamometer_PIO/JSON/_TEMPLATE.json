@@ -1,0 +1,23 @@
+{
+  "name": "TEMPLATE — copy me per motor",
+  "notes": "One profile per DUT. Pick torque_setpoints OR torque_sweep (not both).",
+  "torque_limit_Nm": 2.5,
+  "brake_rpm_span": 3000.0,
+  "rpm_sweep": {
+    "start": 2700,
+    "stop": 270,
+    "step": -270
+  },
+  "pid": {
+    "kp": 1.0,
+    "ki": 1.0,
+    "kd": 0.0
+  },
+  "reference": {
+    "stall_torque_Nm": 2.0,
+    "no_load_rpm": 3000,
+    "rated_voltage_V": 12,
+    "gearbox": "n/a"
+  },
+  "_pid_units": "kp dimensionless (rpm of braking per rpm of error), ki 1/s, kd s. The PID answers in rpm; brake_rpm_span converts that to a squeeze."
+}
