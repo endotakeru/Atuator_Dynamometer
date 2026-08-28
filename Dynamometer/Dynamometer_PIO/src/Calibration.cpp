@@ -3,50 +3,48 @@
 #include <EEPROM.h>
 
 static constexpr uint32_t CAL_MAGIC = 0x44594E45; //"DYNE"
-static constexpr int CAL_ADDR = 0; // (?) TBD
+static constexpr int CAL_ADDR = 0; // start writing at zero
 
-Calibration cal; // (?)
+Calibration cal;
 
 void calLoadDefaults(){
     cal.magic = CAL_MAGIC;
     cal.counts_per_Nm = 1.0f; //TBD
     cal.drag_tare_Nm = 0.0f; //TBD
-    cal.kp = KP_DEFAULT; //TBD
-    cal.ki = KI_DEFAULT; //TBD
-    cal.kd = KD_DEFAULT; //TBD
+    cal.kp = KP_DEFAULT;
+    cal.ki = KI_DEFAULT;
+    cal.kd = KD_DEFAULT;
     cal.servo_released_us = SERVO_RELEASED_US_DEFAULT;
     cal.servo_full_us = SERVO_FULL_US_DEFAULT;
     cal.torque_limit_Nm = TORQUE_LIMIT_DEFAULT_NM;
-    cal.stiction_floor = BRAKE_STICTION_FLOOR_DEFAULT; // (?)
+    cal.stiction_floor = BRAKE_STICTION_FLOOR_DEFAULT;
     cal.brake_rpm_span = BRAKE_RPM_SPAN_DEFAULT;
 }
 
 void calLoad(){
-    Calibration tmp; // (?)
-    EEPROM.get(CAL_ADDR, tmp); // (?)
+    Calibration tmp; // create blank temporary copy
+    EEPROM.get(CAL_ADDR, tmp); // paste everything onto tmp
     if (tmp.magic == CAL_MAGIC){
-        cal = tmp; // (?)
+        cal = tmp;
         cal.torque_limit_Nm = constrain(cal.torque_limit_Nm, 0.0f, TORQUE_LIMIT_ABS_NM);
-        if (cal.brake_rpm_span <= 0.0f) cal.brake_rpm_span = BRAKE_RPM_SPAN_DEFAULT; // (?)
+        if (cal.brake_rpm_span <= 0.0f) 
+            cal.brake_rpm_span = BRAKE_RPM_SPAN_DEFAULT;
         Serial.println(F("# cal loaded from EEPROM"));
     }
     else{
-        calLoadDefaults(); // (?)
+        calLoadDefaults();
         Serial.println(F("# no valid EEPROM cal - using defaults"));
     }
 }
 
 void calSave(){
     cal.magic = CAL_MAGIC;
-    EEPROM.put(CAL_ADDR, cal); // (?)
-    #if defined(ESP32) || defined(ESP8266)
-        EEPROM.commit(); // (?)
-    #endif // (?)
-        Serial.println(F("# cal saved"));
+    EEPROM.put(CAL_ADDR, cal); // rewrite EEPROM with cal
+    Serial.println(F("# cal saved"));
 }
 
 void calPrint(){
-    Serial.print(F("# cfg counts_per_Nm = ")); Serial.print(cal.counts_per_Nm, 4);
+    Serial.print(F("# config counts_per_Nm = ")); Serial.print(cal.counts_per_Nm, 4);
     Serial.print(F(" drag_tare_Nm="));       Serial.print(cal.drag_tare_Nm, 5);
     Serial.print(F(" torque_limit_Nm="));    Serial.print(cal.torque_limit_Nm, 3);
     Serial.print(F(" Kp="));                 Serial.print(cal.kp, 4);
