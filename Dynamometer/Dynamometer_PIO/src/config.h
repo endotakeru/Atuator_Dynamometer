@@ -46,7 +46,7 @@ constexpr float RPM_ALPHA = 0.4f;
 constexpr float TORQUE_ALPHA = 0.3f;
 
 //INA226
-constexpr uint8_t INA226_ADDR = 0x40; //A0,A1 -> GND, INA226 address
+constexpr uint8_t INA226_ADDR = 0x40; //INA226 address for using A0,A1 -> GND
 constexpr float INA_SHUNT_OHMS = 0.015f; //TBD
 constexpr float INA_MAX_CURRENT_A = 5.0f; //TBD
 

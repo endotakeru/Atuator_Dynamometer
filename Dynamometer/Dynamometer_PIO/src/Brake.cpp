@@ -15,16 +15,16 @@ static int clampUs(int us){
 }
 
 float brakeRpmToDemand(float rpm_shed){
-    if (rpm_shed <= 0.0f) return 0.0f;  // (?)
+    if (rpm_shed <= 0.0f) return 0.0f;
 
-    const float span = (cal.brake_rpm_span > 0.0f) ? cal.brake_rpm_span : BRAKE_RPM_SPAN_DEFAULT; // (?)
-    const float frac = constrain(rpm_shed / span, 0.0f, 1.0f); // (?)
-    return cal.stiction_floor + frac * (1.0f - cal.stiction_floor); // (?)
+    const float span = (cal.brake_rpm_span > 0.0f) ? cal.brake_rpm_span : BRAKE_RPM_SPAN_DEFAULT;
+    const float frac = constrain(rpm_shed / span, 0.0f, 1.0f);
+    return cal.stiction_floor + frac * (1.0f - cal.stiction_floor); //stiction_floor makes sure caliper dead-zones are avoided
 }
 
 void brakeBegin(){
-    servo1.attach(PIN_SERVO1); // (?)
-    servo2.attach(PIN_SERVO2); // (?)
+    servo1.attach(PIN_SERVO1); //set mcu pins
+    servo2.attach(PIN_SERVO2);
     brakeRelease();
 }
 

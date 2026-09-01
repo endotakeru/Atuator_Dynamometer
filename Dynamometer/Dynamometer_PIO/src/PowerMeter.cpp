@@ -1,9 +1,9 @@
 #include "PowerMeter.h"
 #include "config.h"
-#include <Wire.h> // (?)
+#include <Wire.h> // I2C library
 #include <INA226.h>
 
-static INA226 ina(INA226_ADDR); // (?)
+static INA226 ina(INA226_ADDR); //make 'ina' w/ address 0x40
 static float v = 0.0f, i = 0.0f;
 static bool present = false;
 
