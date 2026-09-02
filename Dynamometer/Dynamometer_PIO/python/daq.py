@@ -1,40 +1,41 @@
 import argparse
 import csv
-import json # (?)
-import os # (?)
-import queue # (?)
-import threading # (?)
-import time # (?)
-from collections import deque # (?)
-from datetime import datetime # (?)
+import json
+import os # Interact with os
+import queue # Shared comm channel between threads
+import threading # Serial and Sweep run at the same time
+import time
+from collections import deque # List w/ max length, old items fall at end
+from datetime import datetime
 
 import numpy as np
 import serial
 
+# Check if plotting is possible
 try:
     import matplotlib.pylot as plt
     from matplotlib.animation import FuncAnimation
-    HAVE_MPL = True # (?)
+    HAVE_MPL = True
 except ImportError:
-    HAVE_MPL = False # (?)
+    HAVE_MPL = False
 
 COLUMNS = ["t_m", "mode", "setpoint_rpm", "rpm", "torque_Nm", "voltage_V",
            "current_A", "elec_W", "brake_W", "eff", "servo_us", "demand"]
 
-class SerialLink(threading.Thread): # (?)
+class SerialLink(threading.Thread): # Class w/ all threading attributes
     def __init__(self, port, baud, raw_csv_path, out_queue):
         super().__init__(daemon=True)
         self.ser = serial.Serial(port, baud, timeout=1.0)
-        self.out_queue = out_queue
-        self.latest = None
-        self.running = True
+        self.out_queue = out_queue # queue
+        self.latest = None # latest data
+        self.running = True # on/off for thread
         self._csv_f = open(raw_csv_path, "w", newline="")
         self._csv = csv.writer(self._csv_f)
-        self._csv.writerow(["host_time"] + COLUMNS)
-        time.sleep(2.0)
+        self._csv.writerow(["host_time"] + COLUMNS) # Header
+        time.sleep(2.0) # Initialization
         self.ser.reset_input_buffer()
 
-    def run(self): # (?)
+    def run(self): # Reads lines, save good data to CSV
         while self.running:
             try:
                 line = self.ser.readline().decode("ascii", "ignore").strip()
@@ -62,11 +63,11 @@ class SerialLink(threading.Thread): # (?)
             except queue.Full:
                 pass
 
-    def send(self, cmd): # (?)
+    def send(self, cmd): # Sending commands to board, add parser newline
         self.ser.write((cmd + "\n").encode("ascii"))
         self.ser.flush()
 
-    def close(self): # (?)
+    def close(self): # Send R command (release) then close file & port
         self.running = False
         try:
             self.send("R")
@@ -77,7 +78,7 @@ class SerialLink(threading.Thread): # (?)
         self.ser.close()
 
 class SweepController(threading.Thread):
-    def __init__(self, link, setpoints, results, args): # (?)
+    def __init__(self, link, setpoints, results, args):
         super().__init__(daemon=True)
         self.link = link
         self.setpoints = setpoints
@@ -86,7 +87,7 @@ class SweepController(threading.Thread):
         self.done = False
         self.status = "idle"
 
-    def _wait_settle(self, target): # (?)
+    def _wait_settle(self, target): # Wait until speed stays within tolerance
         t0 = time.time()
         held_since = None
         while time.time() - t0 < self.args.settle_timeout:
@@ -102,7 +103,7 @@ class SweepController(threading.Thread):
             time.sleep(0.05)
         return "timeout"
 
-    def _average_point(self, target): # (?)
+    def _average_point(self, target): # Collects and avg samples
         buf = []
         t0 = time.time()
         while time.time() - t0 < self.args.avg_time:
@@ -122,7 +123,7 @@ class SweepController(threading.Thread):
         pt["eff"] = pt["brake_W"] / pt["elec_W"] if pt["elec_W"] > 0.5 else 0.0
         return pt
 
-    def run(self): # (?)
+    def run(self):
         print("\n# Sweep (speed) setpoints [rpm]:", self.setpoints)
         for target in self.setpoints:
             self.status = f"settling @ {target:g} rpm"
@@ -146,7 +147,7 @@ class SweepController(threading.Thread):
         self.done = True
         self._write_summary()
 
-    def _write_summary(self): # (?)
+    def _write_summary(self): # Write final sweep CSV (1 row = 1 setpoint), Print best efficiency point
         path = self.args.out_prefix + "_sweep.csv"
         cols = ["setpoint", "rpm", "rpm_std", "torque_Nm", "voltage_V",
                 "current_A", "elec_W", "brake_W", "eff", "servo_us", "note"]
@@ -167,12 +168,12 @@ class SweepController(threading.Thread):
 
 
 #Plotting with live animation
-def run_plot(link, results, sweep): # (?)
+def run_plot(link, results, sweep): # live graph
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
     fig.canvas.manager.set_window_title("Dynamometer — constant-speed (rpm sweep)")
     live_hist = deque(maxlen=400)
 
-    def update(_frame): # (?)
+    def update(_frame):
         rec = link.latest
         if rec is not None:
             live_hist.append((rec["rpm"], rec["torque_Nm"], rec["eff"]))
@@ -209,7 +210,7 @@ def run_plot(link, results, sweep): # (?)
 
 
 #Setpoint / profile resolution
-def _range_list(start, stop, step): # (?)
+def _range_list(start, stop, step): # Create list of setpoints
     pts, n = [], start
     if step == 0:
         raise ValueError("step cannot be 0")
@@ -219,22 +220,25 @@ def _range_list(start, stop, step): # (?)
     return pts
 
 
-def load_dut_profile(path): # (?)
+def load_dut_profile(path): # Return .json as python dictionary
     with open(path) as f:
         prof = json.load(f)
     print(f"# DUT profile: {prof.get('name', path)}")
     return prof
 
 
-def resolve_setpoints(args, profile): # (?)
-    """Return (setpoints, torque_limit) honoring the documented precedence."""
+def resolve_setpoints(args, profile): # Return (setpoints, torque_limit) 
+    # Ranked: 
+    # 1. Manual setpoints 
+    # 2. Automatic setpoints from sweep range given 
+    # 3. Automatic setpoints from DUT .json profile
     limit = args.torque_limit
-    if args.setpoints:
+    if args.setpoints: # Manual setpoints 
         return [float(x) for x in args.setpoints.split(",")], limit
-    if args.sweep:
+    if args.sweep: # Automatic setpoints from sweep range given
         a, b, c = (float(x) for x in args.sweep.split(":"))
         return _range_list(a, b, c), limit
-    if profile:
+    if profile: # Automatic setpoints from DUT .json profile
         sp = profile.get("rpm_setpoints")
         if not sp and "rpm_sweep" in profile:
             r = profile["rpm_sweep"]
@@ -245,7 +249,7 @@ def resolve_setpoints(args, profile): # (?)
     raise SystemExit("need one of: --setpoints, --sweep, or --dut <profile.json>")
 
 
-def main(): # (?)
+def main(): # Read the command line, start everything, clean up at the end
     ap = argparse.ArgumentParser(description="Dynamometer DAQ / sweep controller")
     ap.add_argument("--port", required=True, help="Serial port, e.g. COM5 or /dev/ttyUSB0")
     ap.add_argument("--baud", type=int, default=115200)
@@ -311,5 +315,5 @@ def main(): # (?)
         print("# Brake released, serial closed. Bye.")
 
 
-if __name__ == "__main__": # (?)
+if __name__ == "__main__":
     main()
