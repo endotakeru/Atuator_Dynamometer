@@ -10,12 +10,13 @@ static uint32_t last_tick_ms = 0;
 
 void setup() {
   Serial.begin(SERIAL_BAUD);
-  pinMode(PIN_LED, OUTPUT);
+  pinMode(LED_PIN, OUTPUT);
 
   calLoadDefaults();
   brakeBegin();
   calLoad();
 
+  powerBegin();
   torqueBegin();
   tachBegin();
   controlBegin();
@@ -51,6 +52,7 @@ void handleSerial(){
         cal.torque_limit_Nm = constrain((float)atof(arg), 0.0f, TORQUE_LIMIT_ABS_NM);
         Serial.print(F("# torque_limit_Nm=")); 
         Serial.println(cal.torque_limit_Nm, 3);
+        break;
       }
       case 'S':{ // target speed
         const float sp = atof(arg);
@@ -63,10 +65,11 @@ void handleSerial(){
         brakeRelease(); 
         break;
       }
-      case 'B':{ // (?)
-        controlSetMode(MODE_MANUAL); 
+      case 'B':{ // Switch to manual mode, and drive servos to command typed
+        controlSetMode(MODE_MANUAL);
         brakeSetMicroseconds(atoi(arg));
-        Serial.print(F("# released")); 
+        Serial.print(F("# servo_us="));
+        Serial.println(brakeMicroseconds());
         break;
       }
       case 'R':{ // IDLE Mode
@@ -178,7 +181,7 @@ void loop() {
   Serial.print(elec_W, 3); Serial.print(',');
   Serial.print(brake_W, 3); Serial.print(',');
   Serial.print(eff, 4); Serial.print(',');
-  Serial.print(brakeMicroseconds());
+  Serial.print(brakeMicroseconds()); Serial.print(',');
   Serial.println(brakeDemand(), 4);
 
   digitalWrite(LED_PIN, controlMode() == MODE_SPEED); // when true, LED = on

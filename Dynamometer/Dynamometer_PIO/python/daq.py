@@ -13,13 +13,13 @@ import serial
 
 # Check if plotting is possible
 try:
-    import matplotlib.pylot as plt
+    import matplotlib.pyplot as plt
     from matplotlib.animation import FuncAnimation
     HAVE_MPL = True
 except ImportError:
     HAVE_MPL = False
 
-COLUMNS = ["t_m", "mode", "setpoint_rpm", "rpm", "torque_Nm", "voltage_V",
+COLUMNS = ["t_ms", "mode", "setpoint_rpm", "rpm", "torque_Nm", "voltage_V",
            "current_A", "elec_W", "brake_W", "eff", "servo_us", "demand"]
 
 class SerialLink(threading.Thread): # Class w/ all threading attributes

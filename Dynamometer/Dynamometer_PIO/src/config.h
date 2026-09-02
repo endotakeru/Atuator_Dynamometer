@@ -13,8 +13,8 @@ constexpr uint8_t LED_PIN = LED_BUILTIN; //Arduino's Built-In LED Pin (13u)
 constexpr uint16_t ENCODER_SLOTS = 38;
 
 //Control Frequency and Serial Baud
-constexpr uint8_t CONTROL_DT_MS = 50; //20 Hz control
-constexpr uint8_t SERIAL_BAUD = 115200;
+constexpr uint16_t CONTROL_DT_MS = 50; //20 Hz control
+constexpr uint32_t SERIAL_BAUD = 115200;
 
 //Torque Limits:
 constexpr float TORQUE_LIMIT_DEFAULT_NM = 5.0f;

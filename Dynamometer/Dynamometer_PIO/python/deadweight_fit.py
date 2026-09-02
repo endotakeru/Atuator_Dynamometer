@@ -55,7 +55,7 @@ def main():
         xs = np.linspace(0, torque.max() * 1.05, 50)
         plt.figure(figsize = (6,5)) # 6 by 5 inches
         plt.scatter(torque, counts, color="#2f6fed", label="data")
-        plt.plt(xs, slope * xs + intercept, "r-", label=f"{slope:.1f} counts/Nm (R^2={r2:.4f})")
+        plt.plot(xs, slope * xs + intercept, "r-", label=f"{slope:.1f} counts/Nm (R^2={r2:.4f})")
 
         #Plot Titles
         plt.xlabel("Applied torque (Nm)")
