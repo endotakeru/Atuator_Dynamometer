@@ -37,7 +37,12 @@ constexpr float KP_DEFAULT = 1.0f; // TBD
 constexpr float KI_DEFAULT = 1.0f; // TBD
 constexpr float KD_DEFAULT = 0.0f;  // TBD
 
-constexpr float TORQUE_RELIEF_RPM = 25.0f; // how much rpm is released when torque limit is crossed
+// How much of the braking request is dropped each tick once the torque limit
+// is reached. NOTE the unwind time scales with brake_rpm_span, so it is not the
+// same on every motor: ticks to unwind = span / 25, i.e. 2.0 s at a span of
+// 1000 but only 0.4 s at a span of 200. Erring fast is the safe direction for a
+// protection feature, but lower this if you see the brake lurching.
+constexpr float TORQUE_RELIEF_RPM = 25.0f; // rpm removed from the request per tick
 
 constexpr uint16_t BRAKE_RAMP_TICKS = 40; // ticks to reach full servo travel
 

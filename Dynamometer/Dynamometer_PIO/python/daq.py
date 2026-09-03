@@ -108,9 +108,12 @@ class SweepController(threading.Thread):
         t0 = time.time()
         while time.time() - t0 < self.args.avg_time:
             rec = self.link.latest
-            if rec is not None:
+            # We poll at the same rate the firmware sends, so without this check
+            # jitter would count some telemetry lines twice and miss others,
+            # biasing both the averages and the rpm_std that reports quality.
+            if rec is not None and (not buf or rec["t_ms"] != buf[-1]["t_ms"]):
                 buf.append(rec)
-            time.sleep(0.05)
+            time.sleep(0.02)
         if not buf:
             return None
         pt = {}
@@ -213,7 +216,7 @@ def run_plot(link, results, sweep): # live graph
 def _range_list(start, stop, step): # Create list of setpoints
     pts, n = [], start
     if step == 0:
-        raise ValueError("step cannot be 0")
+        raise SystemExit("--sweep step cannot be 0 (use a negative step to count down)")
     while (step > 0 and n <= stop + 1e-9) or (step < 0 and n >= stop - 1e-9):
         pts.append(round(n, 6))
         n += step

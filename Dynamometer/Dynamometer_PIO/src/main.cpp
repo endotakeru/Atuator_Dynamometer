@@ -25,6 +25,11 @@ void setup() {
   Serial.println(F("# Dynamometer constant-speed (rpm sweep) ready"));
   Serial.println(F("t_ms,mode,setpoint_rpm,rpm,torque_Nm,voltage_V,current_A,elec_W,brake_W,eff,servo_us,demand"));
   calPrint();
+
+  // Start the clock LAST. Left at 0, the first tick's dt would be the whole of
+  // setup() (~0.35-0.8 s, mostly the settle delay in torqueBegin) instead of
+  // 0.05 s - a 7x to 16x oversized integral step and a wrong first rpm.
+  last_tick_ms = millis();
 }
 
 void handleSerial(){
@@ -52,6 +57,10 @@ void handleSerial(){
         cal.torque_limit_Nm = constrain((float)atof(arg), 0.0f, TORQUE_LIMIT_ABS_NM);
         Serial.print(F("# torque_limit_Nm=")); 
         Serial.println(cal.torque_limit_Nm, 3);
+        // A limit of 0 makes "torque >= limit" true forever, so the soft
+        // safeguard latches on and the brake can never engage. Say so.
+        if (cal.torque_limit_Nm <= 0.0f)
+          Serial.println(F("# WARN: limit is 0 - the brake will never engage"));
         break;
       }
       case 'S':{ // target speed
@@ -80,6 +89,7 @@ void handleSerial(){
         break;
       }
       case 'T':{ // Zero the scale (store the offset)
+        controlSetMode(MODE_IDLE); // tare() blocks ~125 ms; never while braking
         torqueTare(10); 
         Serial.println(F("# tared")); 
         break;

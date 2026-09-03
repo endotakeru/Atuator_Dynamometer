@@ -2,6 +2,7 @@
 #include "config.h"
 #include "Calibration.h"
 #include "Brake.h"
+#include <math.h> // isnan(), for the load-cell sanity check
 
 static Mode mode = MODE_IDLE;
 
@@ -10,7 +11,7 @@ static float rpm_i = 0.0f; // I gain total
 static float rpm_last = 0.0f;
 static bool have_last = false;
 static float shed_last = 0.0f; // rpm amount the brake shed last
-static bool easing_off = false; // (?)
+static bool easing_off = false;
 
 void controlBegin(){controlReset(); mode = MODE_IDLE;}
 
@@ -35,9 +36,20 @@ void controlSetSpeed(float rpm){rpm_target = max(rpm, 0.0f);} //make sure speed 
 float controlSpeedSetpoint(){return rpm_target;}
 
 static void updateSpeed(float torque, float rpm, float dt){
+    // A NaN fails EVERY comparison below, including both torque limits, so an
+    // unreadable load cell would silently switch the safeguards off instead of
+    // tripping them. Treat it as an emergency, not as zero torque.
+    if (isnan(torque)){
+        brakeRelease();
+        rpm_i = 0.0f; shed_last = 0.0f; have_last = false; easing_off = false;
+        mode = MODE_IDLE;
+        Serial.println(F("# E-STOP: torque reading is not a number - check the HX711"));
+        return;
+    }
+
     if (torque >= TORQUE_LIMIT_ABS_NM){
         brakeRelease();
-        rpm_i = 0.0f; shed_last = 0.0f; have_last = false;
+        rpm_i = 0.0f; shed_last = 0.0f; have_last = false; easing_off = false;
         mode = MODE_IDLE;
         Serial.print(F("# E-STOP: torque ")); Serial.print(torque, 3);
         Serial.print(F(" >= abs limit ")); Serial.println(TORQUE_LIMIT_ABS_NM, 3);

@@ -9,24 +9,32 @@ try:
 except ImportError:
     raise SystemExit("matplotlib required:  pip install matplotlib numpy")
 
-def load_sweep(path):
-    """Read a sweep CSV into a dict of numpy arrays."""
+def load_sweep(path): # Turn one sweep CSV into a dictionary of NumPy Arrays
     rows = []
     with open(path, newline="") as f:
         for rec in csv.DictReader(f):
             try:
-                rows.append({k: (float(v) if v not in ("", None) else np.nan)
-                             for k, v in rec.items() if k != "note"})
+                row = {k: (float(v) if v not in ("", None) else np.nan)
+                       for k, v in rec.items() if k != "note"}
+                # Keep the note as text. daq.py writes "timeout" here when a
+                # setpoint never settled; dropping it made a bad point look
+                # identical to a good one.
+                row["_note"] = (rec.get("note") or "").strip()
+                rows.append(row)
             except ValueError:
                 continue
     if not rows:
         raise SystemExit(f"no usable rows in {path}")
-    keys = rows[0].keys()
-    return {k: np.array([r[k] for r in rows]) for k in keys}
+    keys = [k for k in rows[0].keys() if k != "_note"]
+    out = {k: np.array([r[k] for r in rows]) for k in keys}
+    out["_note"] = np.array([r["_note"] for r in rows])   # text, kept out of the floats
+    return out
 
-def summarize(d, label):
+def summarize(d, label): # Report a summary after each dataset
     eff = d["eff"] * 100
-    best = int(np.nanargmax(eff))
+    if np.all(np.isnan(eff)):     # nanargmax raises on an all-NaN column
+        return f"--- {label} ---\n  no usable efficiency data (all rows blank)"
+    best = int(np.nanargmax(eff)) # Peak efficiency
     lines = [
         f"--- {label} ---",
         f"  points            : {len(eff)}",
@@ -39,7 +47,7 @@ def summarize(d, label):
     ]
     return "\n".join(lines)
 
-def main():
+def main(): # Return 4 plots, x vs y: (RPM vs Nm, Nm vs Eff, RPM vs Eff, Nm vs W)
     ap = argparse.ArgumentParser(description="Analyze dynamometer sweep CSVs")
     ap.add_argument("csv", nargs="+", help="one or more *_sweep.csv files")
     ap.add_argument("--labels", help="comma-separated labels, one per file")
@@ -47,8 +55,9 @@ def main():
     ap.add_argument("--out", default="dyno_analysis.png")
     args = ap.parse_args()
 
-    labels = (args.labels.split(",") if args.labels
-              else [os.path.basename(p).replace("_sweep.csv", "") for p in args.csv])
+    labels = ([s.strip() for s in args.labels.split(",")] if args.labels
+              else [os.path.splitext(os.path.basename(p))[0].replace("_sweep", "")
+                    for p in args.csv])
     if len(labels) != len(args.csv):
         raise SystemExit("--labels count must match the number of CSV files")
 
@@ -69,15 +78,30 @@ def main():
         ax_pw.plot(d["torque_Nm"][order_t], d["elec_W"][order_t], "s--",
                    alpha=0.6, label=f"{lab} elec")
 
-        best = int(np.nanargmax(d["eff"]))
-        ax_et.plot(d["torque_Nm"][best], d["eff"][best] * 100, "*",
-                   ms=16, color="#d62728", zorder=5)
+        # Ring any point that did not settle, so it reads as less trustworthy.
+        bad = np.array([n != "" for n in d["_note"]])
+        if bad.any():
+            ax_ts.plot(d["rpm"][bad], d["torque_Nm"][bad], "o", ms=13, mfc="none",
+                       mec="#d62728", mew=1.6, label=f"{lab} unsettled")
+
+        if not np.all(np.isnan(d["eff"])):
+            best = int(np.nanargmax(d["eff"]))
+            ax_et.plot(d["torque_Nm"][best], d["eff"][best] * 100, "*",
+                       ms=16, color="#d62728", zorder=5)
 
     ax_ts.set(xlabel="Speed (rpm)", ylabel="Torque (N·m)", title="Torque vs Speed")
+    # An efficiency above 100% is impossible, so it is the clearest sign that
+    # counts_per_Nm or the shunt value is wrong. Let the axis grow to show it
+    # rather than drawing the point off the edge of the chart.
+    eff_top = max([100.0] + [np.nanmax(d["eff"]) * 100 for d in datasets]) * 1.05
     ax_et.set(xlabel="Torque (N·m)", ylabel="Efficiency (%)",
-              title="Efficiency vs Torque  (★ = peak)", ylim=(0, 100))
+              title="Efficiency vs Torque  (★ = peak)", ylim=(0, eff_top))
     ax_es.set(xlabel="Speed (rpm)", ylabel="Efficiency (%)",
-              title="Efficiency vs Speed", ylim=(0, 100))
+              title="Efficiency vs Speed", ylim=(0, eff_top))
+    if eff_top > 105:
+        for ax in (ax_et, ax_es):
+            ax.axhline(100, color="#d62728", ls=":", lw=1.2)
+        print("# WARNING: efficiency exceeds 100% - check counts_per_Nm and INA_SHUNT_OHMS")
     ax_pw.set(xlabel="Torque (N·m)", ylabel="Power (W)",
               title="Mechanical vs Electrical Power")
 
@@ -95,6 +119,7 @@ def main():
     if args.save:
         fig.savefig(args.out, dpi=150)
         print(f"# wrote {args.out}")
+        plt.close(fig)
     else:
         plt.show()
 

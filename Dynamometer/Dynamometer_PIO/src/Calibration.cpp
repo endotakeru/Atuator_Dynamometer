@@ -29,6 +29,9 @@ void calLoad(){
         cal.torque_limit_Nm = constrain(cal.torque_limit_Nm, 0.0f, TORQUE_LIMIT_ABS_NM);
         if (cal.brake_rpm_span <= 0.0f) 
             cal.brake_rpm_span = BRAKE_RPM_SPAN_DEFAULT;
+        // The only stored value used as a divisor, so never leave it at zero.
+        if (cal.counts_per_Nm == 0.0f)
+            cal.counts_per_Nm = 1.0f;
         Serial.println(F("# cal loaded from EEPROM"));
     }
     else{

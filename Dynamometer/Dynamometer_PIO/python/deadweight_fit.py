@@ -16,7 +16,11 @@ def load_csv(path):
             line = line.strip() # remove spaces and end newlines
             if not line or line.lower().startswith("mass"): # skip blank or header line
                 continue
-            m, r, c = (float(x) for x in line.split(","))
+            try:
+                m, r, c = (float(x) for x in line.split(","))
+            except ValueError:
+                print(f"  skipping malformed line: {line!r} (want mass_kg,radius_m,counts)")
+                continue
             rows.append((m, r, c))
     return rows
 
@@ -45,6 +49,10 @@ def main():
     print("Applied torque (Nm) vs counts:")
     for t, c in zip(torque, counts): # zip pairs elements together
         print(f"  T={t:8.4f}  counts={c:10.1f}")
+    if len(rows) < 3:
+        print("\nNOTE: with only two points a straight line always fits exactly, so the")
+        print("      R^2 below is 1.000 no matter how bad the data is. Use 4-5 weights")
+        print("      spread across the range before trusting it.")
     print(f"\ncounts_per_Nm (slope) = {slope:.4f}")
     print(f"intercept             = {intercept:.2f} counts")
     print(f"R^2                    = {r2:.6f}")
